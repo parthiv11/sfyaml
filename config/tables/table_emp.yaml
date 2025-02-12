@@ -1,0 +1,13 @@
+tables:
+  - name: "employee"
+    query: |
+      CREATE TABLE raw.employee (
+         id VARCHAR,  -- Loaded as text by Airbyte
+         name VARCHAR
+      );
+  - name: "department"
+    query: |
+      CREATE TABLE raw.department (
+         id VARCHAR,
+         name VARCHAR
+      );

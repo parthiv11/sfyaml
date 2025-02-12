@@ -1,0 +1,6 @@
+snowpipes:
+  - name: "employee_pipe"
+    query: |
+      CREATE PIPE employee_pipe
+      AUTO_INGEST = TRUE
+      AS COPY INTO raw.employee FROM @your_stage;

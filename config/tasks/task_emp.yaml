@@ -1,0 +1,8 @@
+tasks:
+  - name: "employee_task"
+    query: |
+      CREATE TASK employee_task
+      WAREHOUSE = your_warehouse
+      SCHEDULE = '1 MINUTE'
+      AS
+      INSERT INTO info.employee_view SELECT * FROM raw.employee;

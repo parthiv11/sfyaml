@@ -1,0 +1,5 @@
+views:
+  - name: "employee_view"
+    query: |
+      CREATE VIEW info.employee_view AS
+      SELECT * FROM raw.employee;
