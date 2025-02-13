@@ -2,7 +2,7 @@ tasks:
   - name: "employee_task"
     query: |
       CREATE TASK employee_task
-      WAREHOUSE = your_warehouse
+      WAREHOUSE = COMPUTE_WH
       SCHEDULE = '1 MINUTE'
       AS
-      INSERT INTO info.employee_view SELECT * FROM raw.employee;
+      INSERT INTO public.employee_view SELECT * FROM public.employee;

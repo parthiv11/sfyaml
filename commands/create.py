@@ -3,10 +3,13 @@ import yaml
 import glob
 from snowflake_connector import create_snowflake_connection
 from object_creator import create_objects, execute_query
+from utils import substitute_env_vars
 
 def read_yaml(file_path):
     with open(file_path, 'r') as f:
-        return yaml.safe_load(f)
+        data = yaml.safe_load(f)
+    # Substitute any ${env:VAR_NAME} references
+    return substitute_env_vars(data)
 
 def load_yaml_configs(path_pattern):
     """
@@ -24,47 +27,64 @@ def load_yaml_configs(path_pattern):
         configs.append(read_yaml(file))
     return configs
 
+def get_object_definitions(master_config, obj_type):
+    """
+    Processes one section (e.g., tables, views, tasks, snowpipes) from the master YAML.
+    Each entry can specify a file, folder, pattern or inline definitions.
+    Returns a list of object definitions (each must contain 'name' and 'query').
+    """
+    definitions = []
+    if obj_type not in master_config:
+        return definitions
+    for entry in master_config[obj_type]:
+        if "file" in entry:
+            pattern = os.path.join("config", entry["file"])
+            configs = load_yaml_configs(pattern)
+            for config in configs:
+                if obj_type in config:
+                    definitions.extend(config[obj_type])
+                else:
+                    print(f"Warning: No '{obj_type}' key found in file {pattern}.")
+        elif "folder" in entry:
+            folder = os.path.join("config", entry["folder"])
+            pattern = os.path.join(folder, "*.yaml")
+            configs = load_yaml_configs(pattern)
+            for config in configs:
+                if obj_type in config:
+                    definitions.extend(config[obj_type])
+                else:
+                    print(f"Warning: No '{obj_type}' key found in files in folder {folder}.")
+        elif "pattern" in entry:
+            pattern = os.path.join("config", entry["pattern"])
+            configs = load_yaml_configs(pattern)
+            for config in configs:
+                if obj_type in config:
+                    definitions.extend(config[obj_type])
+                else:
+                    print(f"Warning: No '{obj_type}' key found in file matching pattern {pattern}.")
+        elif obj_type in entry:
+            # Inline definitions provided directly in master YAML.
+            definitions.extend(entry[obj_type])
+        else:
+            print(f"Error: Unrecognized {obj_type} configuration: {entry}")
+    return definitions
+
 def create_snowflake_objects(dry_run=False):
     master_path = os.path.join('config', 'master_sf_objects.yaml')
     master_config = read_yaml(master_path)
-
-    # Create Snowflake connection using credentials from master config (if provided) or env vars.
+    
+    # Create Snowflake connection using credentials from master config or env variables.
     conn = create_snowflake_connection(master_config)
     cursor = conn.cursor()
-
+    
     try:
-        # Process Snowflake objects for each type
         for obj_type in ['tables', 'views', 'tasks', 'snowpipes']:
-            if obj_type in master_config:
-                for entry in master_config[obj_type]:
-                    file_pattern = entry.get('file')
-                    if not file_pattern:
-                        print(f"Error: Missing 'file' key in {obj_type} configuration.")
-                        continue
-                    # Prepend config directory if needed
-                    full_pattern = os.path.join('config', file_pattern)
-                    configs = load_yaml_configs(full_pattern)
-                    for config in configs:
-                        if obj_type not in config:
-                            print(f"Warning: No '{obj_type}' key found in file matching {full_pattern}. Skipping.")
-                            continue
-                        create_objects(cursor, config.get(obj_type, []), obj_type[:-1], dry_run)
-
-        # Process Airbyte connections (create required schemas)
-        if 'airbyte_connections' in master_config:
-            for connection in master_config['airbyte_connections']:
-                if 'name' not in connection:
-                    print("Error: Airbyte connection configuration missing 'name'. Skipping.")
-                    continue
-                raw_schema = connection.get('raw_schema')
-                info_schema = connection.get('info_schema')
-                if not raw_schema or not info_schema:
-                    print(f"Error: Airbyte connection {connection.get('name')} missing required schema configuration (raw_schema/info_schema). Skipping.")
-                    continue
-                print(f"Processing Airbyte connection: {connection.get('name')}")
-                for schema in [raw_schema, info_schema]:
-                    create_schema_query = f"CREATE SCHEMA IF NOT EXISTS {schema}"
-                    execute_query(cursor, create_schema_query, dry_run)
+            definitions = get_object_definitions(master_config, obj_type)
+            if definitions:
+                create_objects(cursor, definitions, obj_type[:-1], dry_run)
+            else:
+                print(f"No {obj_type} definitions found.")
+        # (Airbyte connector section is ignored for now)
     except Exception as e:
         print(f"Error during object creation: {e}")
         cursor.connection.rollback()

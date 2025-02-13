@@ -9,7 +9,7 @@ def cli():
     pass
 
 @cli.command()
-@click.option('--dry-run', is_flag=True, help='Perform a dry run without executing queries.')
+@click.option('--dry-run', is_flag=True, help='Preview SQL commands without executing them.')
 def apply(dry_run):
     """Apply Snowflake objects creation as per YAML configuration."""
     create_snowflake_objects(dry_run)

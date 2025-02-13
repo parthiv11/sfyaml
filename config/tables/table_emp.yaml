@@ -1,13 +1,13 @@
 tables:
   - name: "employee"
     query: |
-      CREATE TABLE raw.employee (
+      CREATE TABLE public.employee (
          id VARCHAR,  -- Loaded as text by Airbyte
          name VARCHAR
       );
   - name: "department"
     query: |
-      CREATE TABLE raw.department (
+      CREATE TABLE public.department (
          id VARCHAR,
          name VARCHAR
       );

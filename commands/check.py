@@ -1,12 +1,15 @@
-from snowflake_connector import create_snowflake_connection
+import os
 import yaml
+from snowflake_connector import create_snowflake_connection
+from utils import substitute_env_vars
 
 def read_yaml(file_path):
     with open(file_path, 'r') as f:
-        return yaml.safe_load(f)
+        data = yaml.safe_load(f)
+    return substitute_env_vars(data)
 
 def check_connectivity():
-    master_path = 'config/master_sf_objects.yaml'
+    master_path = os.path.join('config', 'master_sf_objects.yaml')
     try:
         master_config = read_yaml(master_path)
         conn = create_snowflake_connection(master_config)

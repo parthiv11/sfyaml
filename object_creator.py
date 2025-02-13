@@ -15,15 +15,15 @@ def execute_query(cursor, query, dry_run=False):
 def create_objects(cursor, objects, obj_type, dry_run=False):
     """
     Executes DDL statements for the given objects.
-    Each object must contain a 'name' and 'query' field.
+    Each object must contain a 'name' and a 'query' field.
     """
     for obj in objects:
-        if 'name' not in obj:
-            print(f"Error: {obj_type} configuration missing 'name' field: {obj}")
+        if "name" not in obj:
+            print(f"Error: {obj_type} definition missing 'name': {obj}")
             continue
-        if 'query' not in obj:
-            print(f"Error: {obj_type} configuration for '{obj.get('name')}' missing 'query' field.")
+        if "query" not in obj:
+            print(f"Error: {obj_type} definition for '{obj.get('name')}' missing 'query'.")
             continue
-        query = obj['query']
+        query = obj["query"]
         execute_query(cursor, query, dry_run)
         print(f"{obj_type.capitalize()} '{obj['name']}' created.")

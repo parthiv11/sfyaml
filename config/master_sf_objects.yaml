@@ -1,34 +1,45 @@
 snowflake:
-  user: "PARTHIV19"
-  password: "@Kishan101101101"
-  account: "YUXTTPP.OT86654"
-  warehouse: "COMPUTE_WH"
-  database: "DEMO"
-  schema: "PUBLIC"
+  user: "${env:SF_USER}"
+  password: "${env:SF_PASSWORD}"
+  account: "${env:SF_ACCOUNT}"
+  warehouse: "${env:SF_WAREHOUSE}"
+  database: "${env:SF_DATABASE}"
+  schema: "${env:SF_SCHEMA}"
 
-tables:
-  - file: "tables/*.yaml"
-views:
-  - file: "views/*.yaml"
+# tables:
+#   - file: "tables/*.yaml"
+#   - tables:  # Inline definitions are also supported
+#       - name: "inline_employee"
+#         query: |
+#           CREATE TABLE PUBLIC.inline_employee (
+#             id VARCHAR,
+#             name VARCHAR
+#           );
+
+# views:
+#   - file: "views/*.yaml"
+
 tasks:
   - file: "tasks/*.yaml"
+
 snowpipes:
   - file: "snowpipes/*.yaml"
 
-airbyte_connections:
-  - name: "employee_connection"
-    raw_schema: "raw"
-    info_schema: "info"
-    dbt:
-      git_url: "https://github.com/yourorg/dbt-employee-models.git"
-      branch: "main"
-      models:
-        - name: "employee_transform"
-          raw_table: "employee"
-          info_table: "employee_info"
-          transformation: |
-            SELECT 
-              CAST(id AS INT) AS id, 
-              UPPER(name) AS name, 
-              CURRENT_TIMESTAMP() AS transformed_at
-            FROM raw.employee
+# airbyte_connections section is defined in the file for future use but will be ignored for now.
+# airbyte_connections:
+#   - name: "employee_connection"
+#     raw_schema: "raw"
+#     info_schema: "info"
+#     dbt:
+#       git_url: "https://github.com/yourorg/dbt-employee-models.git"
+#       branch: "main"
+#       models:
+#         - name: "employee_transform"
+#           raw_table: "employee"
+#           info_table: "employee_info"
+#           transformation: |
+#             SELECT 
+#               CAST(id AS INT) AS id, 
+#               UPPER(name) AS name, 
+#               CURRENT_TIMESTAMP() AS transformed_at
+#             FROM raw.employee
