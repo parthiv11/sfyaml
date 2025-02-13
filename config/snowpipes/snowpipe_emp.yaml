@@ -3,4 +3,4 @@ snowpipes:
     query: |
       CREATE PIPE employee_pipe
       AUTO_INGEST = TRUE
-      AS COPY INTO public.employee FROM @your_stage;
+      AS COPY INTO public.employee FROM @my_stage;

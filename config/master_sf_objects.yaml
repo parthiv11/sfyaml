@@ -6,18 +6,18 @@ snowflake:
   database: "${env:SF_DATABASE}"
   schema: "${env:SF_SCHEMA}"
 
-# tables:
-#   - file: "tables/*.yaml"
-#   - tables:  # Inline definitions are also supported
-#       - name: "inline_employee"
-#         query: |
-#           CREATE TABLE PUBLIC.inline_employee (
-#             id VARCHAR,
-#             name VARCHAR
-#           );
+tables:
+  - file: "tables/*.yaml"
+  - tables:  # Inline definitions are also supported
+      - name: "inline_employee"
+        query: |
+          CREATE TABLE PUBLIC.inline_employee (
+            id VARCHAR,
+            name VARCHAR
+          );
 
-# views:
-#   - file: "views/*.yaml"
+views:
+  - file: "views/*.yaml"
 
 tasks:
   - file: "tasks/*.yaml"

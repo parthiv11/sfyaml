@@ -1,6 +1,7 @@
 import os
 import yaml
 import glob
+import click
 from snowflake_connector import create_snowflake_connection
 from object_creator import create_objects, execute_query
 from utils import substitute_env_vars
@@ -8,7 +9,6 @@ from utils import substitute_env_vars
 def read_yaml(file_path):
     with open(file_path, 'r') as f:
         data = yaml.safe_load(f)
-    # Substitute any ${env:VAR_NAME} references
     return substitute_env_vars(data)
 
 def load_yaml_configs(path_pattern):
@@ -44,7 +44,7 @@ def get_object_definitions(master_config, obj_type):
                 if obj_type in config:
                     definitions.extend(config[obj_type])
                 else:
-                    print(f"Warning: No '{obj_type}' key found in file {pattern}.")
+                    click.secho(f"Warning: No '{obj_type}' key found in file {pattern}.", fg="yellow")
         elif "folder" in entry:
             folder = os.path.join("config", entry["folder"])
             pattern = os.path.join(folder, "*.yaml")
@@ -53,7 +53,7 @@ def get_object_definitions(master_config, obj_type):
                 if obj_type in config:
                     definitions.extend(config[obj_type])
                 else:
-                    print(f"Warning: No '{obj_type}' key found in files in folder {folder}.")
+                    click.secho(f"Warning: No '{obj_type}' key found in files in folder {folder}.", fg="yellow")
         elif "pattern" in entry:
             pattern = os.path.join("config", entry["pattern"])
             configs = load_yaml_configs(pattern)
@@ -61,12 +61,12 @@ def get_object_definitions(master_config, obj_type):
                 if obj_type in config:
                     definitions.extend(config[obj_type])
                 else:
-                    print(f"Warning: No '{obj_type}' key found in file matching pattern {pattern}.")
+                    click.secho(f"Warning: No '{obj_type}' key found in file matching pattern {pattern}.", fg="yellow")
         elif obj_type in entry:
             # Inline definitions provided directly in master YAML.
             definitions.extend(entry[obj_type])
         else:
-            print(f"Error: Unrecognized {obj_type} configuration: {entry}")
+            click.secho(f"Error: Unrecognized {obj_type} configuration: {entry}", fg="red")
     return definitions
 
 def create_snowflake_objects(dry_run=False):
@@ -75,6 +75,9 @@ def create_snowflake_objects(dry_run=False):
     
     # Create Snowflake connection using credentials from master config or env variables.
     conn = create_snowflake_connection(master_config)
+    
+    # Disable autocommit so we can rollback on error.
+    conn.autocommit = False
     cursor = conn.cursor()
     
     try:
@@ -83,11 +86,17 @@ def create_snowflake_objects(dry_run=False):
             if definitions:
                 create_objects(cursor, definitions, obj_type[:-1], dry_run)
             else:
-                print(f"No {obj_type} definitions found.")
-        # (Airbyte connector section is ignored for now)
+                click.secho(f"No {obj_type} definitions found.", fg="cyan")
+        # Commit if not a dry run.
+        if not dry_run:
+            conn.commit()
+            click.secho("All objects created successfully. Transaction committed.", fg="green", bold=True)
+        else:
+            click.secho("[DRY RUN] No changes were made.", fg="green", bold=True)
     except Exception as e:
-        print(f"Error during object creation: {e}")
-        cursor.connection.rollback()
+        click.secho(f"ERR: Error during object creation: {e}", fg="red", bold=True)
+        conn.rollback()
+        click.secho("Automatic rollback executed due to error.", fg="red", bold=True)
     finally:
         cursor.close()
         conn.close()
